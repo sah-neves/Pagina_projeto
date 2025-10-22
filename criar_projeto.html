@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>TeamBuilder — Criar Projeto (MVP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="criar_projeto.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">TeamBuilder</div>
+  </header>
+
+  <main class="container">
+    <div class="page-title">
+      <div style="width:56px;height:56px;margin:0 auto;background:linear-gradient(135deg,#a78bfa,#f472b6);border-radius:999px;display:grid;place-items:center;color:#fff;">💡</div>
+      <h1>Criar Novo Projeto</h1>
+      <p>Compartilhe sua ideia e encontre os membros perfeitos para a equipe</p>
+    </div>
+
+    <section class="card">
+      <form id="projectForm" novalidate>
+        <!-- Título -->
+        <div class="field">
+          <label class="label" for="title">Título do Projeto</label>
+          <input class="input" id="title" name="title" type="text" placeholder="Digite o nome do seu projeto..." required />
+        </div>
+
+        <!-- Descrição -->
+        <div class="field">
+          <label class="label" for="description">Descrição do Projeto</label>
+          <textarea class="textarea" id="description" name="description" placeholder="Descreva sua ideia, objetivos e o que espera alcançar..." required></textarea>
+          <div class="hint">Seja específico sobre o que está construindo e por que é importante</div>
+        </div>
+
+        <!-- Habilidades necessárias -->
+        <div class="field">
+          <label class="label">Habilidades Necessárias</label>
+          <div class="row two">
+            <input class="input" id="skillName" type="text" placeholder="ex: React, Python, Design UI..." />
+            <select class="select" id="skillLevel">
+              <option value="BEGINNER">Iniciante</option>
+              <option value="INTERMEDIATE" selected>Intermediário</option>
+              <option value="ADVANCED">Avançado</option>
+            </select>
+          </div>
+          <div class="skill-actions" style="margin-top:8px">
+            <button type="button" id="addSkillBtn" class="btn btn-primary">+ Adicionar</button>
+          </div>
+
+          <div id="skillsList" class="skills-list"></div>
+          <div id="skillsEmpty" class="empty">Nenhuma habilidade adicionada ainda. Comece adicionando as habilidades que seu projeto precisa!</div>
+        </div>
+
+        <!-- Alertas -->
+        <div id="formAlert" class="alert"></div>
+
+        <!-- Ações -->
+        <div class="footer-actions">
+          <button type="submit" class="btn btn-primary" id="createBtn">Criar Projeto</button>
+          <button type="button" class="btn" id="cancelBtn">Cancelar</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    // ======= Estado local das habilidades =======
+    const skills = []; // { name: string, level: 'BEGINNER'|'INTERMEDIATE'|'ADVANCED' }
+
+    // ======= Referências DOM =======
+    const skillsList = document.getElementById('skillsList');
+    const skillsEmpty = document.getElementById('skillsEmpty');
+    const addSkillBtn = document.getElementById('addSkillBtn');
+    const skillName = document.getElementById('skillName');
+    const skillLevel = document.getElementById('skillLevel');
+    const form = document.getElementById('projectForm');
+    const alertBox = document.getElementById('formAlert');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    function showAlert(type, msg) {
+      alertBox.className = 'alert ' + type; // 'error' | 'success'
+      alertBox.textContent = msg;
+    }
+
+    function clearAlert() { alertBox.className = 'alert'; alertBox.textContent = ''; }
+
+    function renderSkills() {
+      skillsList.innerHTML = '';
+      if (skills.length === 0) {
+        skillsEmpty.style.display = 'grid';
+        return;
+      }
+      skillsEmpty.style.display = 'none';
+      skills.forEach((s, idx) => {
+        const row = document.createElement('div');
+        row.className = 'skill-item';
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const name = document.createElement('strong');
+        name.textContent = s.name;
+        const level = document.createElement('span');
+        level.className = 'chip';
+        level.textContent = s.level === 'BEGINNER' ? 'Iniciante' : s.level === 'ADVANCED' ? 'Avançado' : 'Intermediário';
+        meta.appendChild(name);
+        meta.appendChild(level);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn btn-danger';
+        remove.textContent = 'Remover';
+        remove.addEventListener('click', () => { skills.splice(idx, 1); renderSkills(); });
+        row.appendChild(meta);
+        row.appendChild(remove);
+        skillsList.appendChild(row);
+      });
+    }
+
+    addSkillBtn.addEventListener('click', () => {
+      clearAlert();
+      const name = (skillName.value || '').trim();
+      if (!name) { return showAlert('error', 'Informe o nome da habilidade antes de adicionar.'); }
+      if (skills.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+        return showAlert('error', 'Essa habilidade já foi adicionada.');
+      }
+      skills.push({ name, level: skillLevel.value });
+      skillName.value = '';
+      renderSkills();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      // Volta para a home (ajuste a rota se necessário)
+      if (document.referrer) { history.back(); } else { window.location.href = '/'; }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+
+      if (!title) return showAlert('error', 'O título do projeto é obrigatório.');
+      if (!description) return showAlert('error', 'A descrição do projeto é obrigatória.');
+
+      // Monta o payload conforme um contrato simples
+      const payload = {
+        title,
+        description,
+        requiredSkills: skills.map(s => ({ name: s.name, level: s.level }))
+      };
+
+      try {
+        const res = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || ('HTTP ' + res.status));
+        }
+        const data = await res.json().catch(() => ({}));
+        showAlert('success', 'Projeto criado com sucesso!');
+        // Se o back retornar o ID do projeto, redireciona para a página dele
+        if (data && data.id) {
+          setTimeout(() => { window.location.href = 'pagina_projeto.html?id=' + encodeURIComponent(data.id); }, 600);
+        } else {
+          // Fallback: redireciona para a página de detalhes mesmo sem ID
+          setTimeout(() => { window.location.href = 'pagina_projeto.html'; }, 600);
+        }
+      } catch (err) {
+        showAlert('error', 'Falha ao criar o projeto. ' + (err.message || ''));
+      }
+    });
+
+    // Render inicial
+    renderSkills();
+  </script>
+</body>
+</html>
