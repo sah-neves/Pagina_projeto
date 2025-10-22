@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>TeamBuilder — Home (MVP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="home.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">TeamBuilder</div>
+    <nav class="menu">
+      <a href="#" class="link">Perfil</a>
+      <a href="#" class="link">Meus Projetos</a>
+      <a href="criar_projeto.html" class="link">Nova Ideia</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Encontre Sua Equipe</h1>
+      <p>Busque colaboradores por habilidades, experiência ou localização.</p>
+      <div class="search-bar">
+        <input id="searchInput" type="search" placeholder="Ex.: React, DevOps, São Paulo..." />
+        <button id="searchBtn" class="btn">Buscar</button>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" id="addMemberBtn">+ Adicionar Colaborador</button>
+        <button class="btn btn-outline">Explorar Equipes</button>
+        <button class="btn btn-outline">Filtros Avançados</button>
+      </div>
+    </section>
+
+    <section class="projects">
+      <div class="projects-head">
+        <h2>Menu de Projetos</h2>
+        <span id="projectsCount" class="badge">0 projetos</span>
+      </div>
+
+
+      <div id="projectsGrid" class="grid"></div>
+
+      <template id="projectCardTpl">
+        <article class="project-card">
+          <div class="project-header">
+            <div class="project-icon">💡</div>
+            <div class="project-info">
+              <h3 class="project-title"></h3>
+              <p class="project-description"></p>
+            </div>
+          </div>
+          <div class="project-skills"></div>
+          <div class="project-meta">
+            <div class="project-status">
+              <span class="project-status-dot"></span>
+              <span class="status-text"></span>
+            </div>
+            <div class="project-actions">
+              <button class="btn btn-primary btn-small view-project">Ver Projeto</button>
+            </div>
+          </div>
+        </article>
+      </template>
+    </section>
+
+    <section class="team">
+      <div class="team-head">
+        <h2>Sua Equipe</h2>
+        <span id="teamCount" class="badge">0 colaboradores</span>
+      </div>
+
+      <div id="teamGrid" class="grid"></div>
+
+      <template id="memberCardTpl">
+        <article class="card">
+          <div class="card-head">
+            <div class="avatar" data-initials=""></div>
+            <div class="info">
+              <h3 class="name"></h3>
+              <p class="role"></p>
+              <p class="xps"></p>
+            </div>
+            <span class="status-dot"></span>
+          </div>
+          <div class="specialties"></div>
+          <div class="skills"></div>
+          <p class="bio"></p>
+        </article>
+      </template>
+    </section>
+  </main>
+
+  <footer class="footer">© <span id="year"></span> TeamBuilder</footer>
+
+  <script>
+    const apiUrl = "/api/team"; // ajuste se necessário
+    const projectsApiUrl = "/api/projects"; // ajuste se necessário
+    const teamGrid = document.getElementById("teamGrid");
+    const teamCount = document.getElementById("teamCount");
+    const projectsGrid = document.getElementById("projectsGrid");
+    const projectsCount = document.getElementById("projectsCount");
+    const tpl = document.getElementById("memberCardTpl");
+    const projectTpl = document.getElementById("projectCardTpl");
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    let members = [];
+    let projects = [];
+
+    function initials(name = "") {
+      return name.split(" ").map(s => s[0]?.toUpperCase() || "").slice(0,2).join("");
+    }
+
+    function normalizeApiTeamResponse(data) {
+      if (!Array.isArray(data)) return [];
+      return data.map((row, idx) => ({
+        id: String(row.id ?? idx),
+        name: row.name ?? row.nome ?? "Membro",
+        role: row.role ?? row.cargo ?? "Colaborador",
+        experienceYears: row.experienceYears ?? row.anosExperiencia ?? null,
+        avatarUrl: row.avatarUrl ?? row.fotoUrl ?? null,
+        status: row.status ?? "offline",
+        specialties: (row.specialties ?? row.especialidades ?? []).map(s => ({
+          code: String(s.code ?? s.sigla ?? "SP"),
+          label: String(s.label ?? s.nome ?? "Especialidade"),
+          level: Number(s.level ?? s.nivel ?? 3)
+        })),
+        skills: (row.skills ?? row.habilidades ?? []).map(String),
+        bio: row.bio ?? row.descricao ?? ""
+      }));
+    }
+
+    function normalizeApiProjectsResponse(data) {
+      if (!Array.isArray(data)) return [];
+      return data.map((row, idx) => ({
+        id: String(row.id ?? idx),
+        title: row.title ?? row.titulo ?? "Projeto",
+        description: row.description ?? row.descricao ?? "",
+        category: row.category ?? row.categoria ?? "tech",
+        status: row.status ?? "open",
+        requiredSkills: (row.requiredSkills ?? row.habilidadesNecessarias ?? []).map(s => ({
+          name: String(s.name ?? s.nome ?? "Habilidade"),
+          level: String(s.level ?? s.nivel ?? "INTERMEDIATE")
+        })),
+        createdAt: row.createdAt ?? row.criadoEm ?? new Date().toISOString(),
+        owner: row.owner ?? row.proprietario ?? "Usuário"
+      }));
+    }
+
+    function render(list) {
+      teamGrid.innerHTML = "";
+      list.forEach(m => {
+        const node = tpl.content.cloneNode(true);
+
+        const avatar = node.querySelector(".avatar");
+        if (m.avatarUrl) {
+          const img = document.createElement("img");
+          img.src = m.avatarUrl; img.alt = m.name;
+          avatar.textContent = ""; avatar.appendChild(img);
+        } else {
+          avatar.textContent = initials(m.name);
+        }
+
+        node.querySelector(".name").textContent = m.name;
+        node.querySelector(".role").textContent = m.role;
+        node.querySelector(".xps").textContent = m.experienceYears != null ? `${m.experienceYears}+ anos de experiência` : "";
+        node.querySelector(".status-dot").setAttribute("data-status", m.status);
+
+        const specs = node.querySelector(".specialties");
+        m.specialties?.forEach(s => {
+          const pill = document.createElement("span");
+          pill.className = "pill";
+          pill.title = s.label;
+          pill.innerHTML = `<strong>${s.code}</strong> <span class="dots">${[0,1,2,3,4].map(i => `<span class="dot ${i < s.level ? "active" : ""}"></span>`).join("")}</span>`;
+          specs.appendChild(pill);
+        });
+
+        const skills = node.querySelector(".skills");
+        m.skills?.forEach(t => {
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = t;
+          skills.appendChild(tag);
+        });
+
+        node.querySelector(".bio").textContent = m.bio ?? "";
+        teamGrid.appendChild(node);
+      });
+      teamCount.textContent = `${list.length} colaborador${list.length === 1 ? "" : "es"}`;
+    }
+
+    function renderProjects(list) {
+      projectsGrid.innerHTML = "";
+      list.forEach(p => {
+        const node = projectTpl.content.cloneNode(true);
+
+        node.querySelector(".project-title").textContent = p.title;
+        node.querySelector(".project-description").textContent = p.description;
+        
+        const statusText = node.querySelector(".status-text");
+        const statusDot = node.querySelector(".project-status-dot");
+        
+        if (p.status === "open") {
+          statusText.textContent = "Aberto para colaboradores";
+          statusDot.style.background = "#10b981";
+        } else if (p.status === "in-progress") {
+          statusText.textContent = "Em andamento";
+          statusDot.style.background = "#f59e0b";
+        } else {
+          statusText.textContent = "Fechado";
+          statusDot.style.background = "#9ca3af";
+        }
+
+        const skillsContainer = node.querySelector(".project-skills");
+        p.requiredSkills?.forEach(skill => {
+          const skillTag = document.createElement("span");
+          skillTag.className = "project-skill";
+          skillTag.textContent = skill.name;
+          skillsContainer.appendChild(skillTag);
+        });
+
+        // Adicionar event listener para o botão
+        const viewBtn = node.querySelector(".view-project");
+        
+        viewBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          window.location.href = `pagina_projeto.html?id=${p.id}`;
+        });
+
+        // Click no card para ver detalhes
+        node.querySelector(".project-card").addEventListener("click", () => {
+          window.location.href = `pagina_projeto.html?id=${p.id}`;
+        });
+
+        projectsGrid.appendChild(node);
+      });
+      projectsCount.textContent = `${list.length} projeto${list.length === 1 ? "" : "s"}`;
+    }
+
+    async function load() {
+      // Carregar membros da equipe
+      try {
+        const res = await fetch(apiUrl, { headers: { "Content-Type": "application/json" }});
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        members = normalizeApiTeamResponse(data);
+      } catch (e) {
+        members = [
+          { 
+            id:"1", 
+            name:"Sarah Chen", 
+            role:"Full Stack Developer", 
+            experienceYears:5, 
+            avatarUrl:null, 
+            status:"online", 
+            specialties:[
+              {code:"FR", label:"Frontend", level:4},
+              {code:"BE", label:"Backend", level:3}
+            ], 
+            skills:["React","TypeScript","Node.js","PostgreSQL"], 
+            bio:"Desenvolvedora apaixonada por criar interfaces intuitivas e experiências digitais excepcionais." 
+          },
+          { 
+            id:"2", 
+            name:"Marcus Johnson", 
+            role:"DevOps Engineer", 
+            experienceYears:7, 
+            avatarUrl:null, 
+            status:"busy", 
+            specialties:[
+              {code:"NU", label:"Nuvem", level:4},
+              {code:"CI", label:"CI/CD", level:5}
+            ], 
+            skills:["Docker","Kubernetes","AWS","Terraform"], 
+            bio:"Especialista em infraestrutura e automação, focado em escalabilidade e confiabilidade." 
+          },
+          { 
+            id:"3", 
+            name:"Ana Silva", 
+            role:"UI/UX Designer", 
+            experienceYears:4, 
+            avatarUrl:null, 
+            status:"online", 
+            specialties:[
+              {code:"UI", label:"Interface", level:5},
+              {code:"UX", label:"Experiência", level:4}
+            ], 
+            skills:["Figma","Adobe XD","Prototyping","User Research"], 
+            bio:"Designer criativa com foco em soluções centradas no usuário e design systems." 
+          },
+          { 
+            id:"4", 
+            name:"Carlos Mendes", 
+            role:"Backend Developer", 
+            experienceYears:6, 
+            avatarUrl:null, 
+            status:"offline", 
+            specialties:[
+              {code:"BE", label:"Backend", level:5},
+              {code:"DB", label:"Banco de Dados", level:4}
+            ], 
+            skills:["Python","Django","MongoDB","Redis"], 
+            bio:"Desenvolvedor backend especializado em APIs robustas e arquiteturas escaláveis." 
+          },
+          { 
+            id:"5", 
+            name:"Marina Costa", 
+            role:"Product Manager", 
+            experienceYears:8, 
+            avatarUrl:null, 
+            status:"online", 
+            specialties:[
+              {code:"PM", label:"Produto", level:5},
+              {code:"ST", label:"Estratégia", level:4}
+            ], 
+            skills:["Product Strategy","Agile","Analytics","Stakeholder Management"], 
+            bio:"Product Manager estratégica com experiência em produtos digitais e metodologias ágeis." 
+          },
+          { 
+            id:"6", 
+            name:"Roberto Lima", 
+            role:"Mobile Developer", 
+            experienceYears:3, 
+            avatarUrl:null, 
+            status:"busy", 
+            specialties:[
+              {code:"MO", label:"Mobile", level:4},
+              {code:"CR", label:"Cross-platform", level:3}
+            ], 
+            skills:["React Native","Flutter","iOS","Android"], 
+            bio:"Desenvolvedor mobile focado em aplicações nativas e cross-platform de alta performance." 
+          },
+          { 
+            id:"7", 
+            name:"Julia Santos", 
+            role:"Data Scientist", 
+            experienceYears:5, 
+            avatarUrl:null, 
+            status:"online", 
+            specialties:[
+              {code:"DS", label:"Data Science", level:4},
+              {code:"ML", label:"Machine Learning", level:3}
+            ], 
+            skills:["Python","TensorFlow","Pandas","SQL"], 
+            bio:"Cientista de dados especializada em machine learning e análise preditiva." 
+          },
+          { 
+            id:"8", 
+            name:"Pedro Oliveira", 
+            role:"QA Engineer", 
+            experienceYears:4, 
+            avatarUrl:null, 
+            status:"offline", 
+            specialties:[
+              {code:"QA", label:"Qualidade", level:4},
+              {code:"AT", label:"Automação", level:3}
+            ], 
+            skills:["Selenium","Cypress","Jest","Test Planning"], 
+            bio:"Engenheiro de QA focado em automação de testes e garantia de qualidade." 
+          }
+        ];
+      }
+      render(members);
+
+      // Carregar projetos
+      try {
+        const res = await fetch(projectsApiUrl, { headers: { "Content-Type": "application/json" }});
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        projects = normalizeApiProjectsResponse(data);
+      } catch (e) {
+        projects = [
+          {
+            id: "1",
+            title: "App de Delivery Sustentável",
+            description: "Desenvolvimento de uma aplicação mobile para delivery de produtos orgânicos com foco em sustentabilidade e economia circular.",
+            category: "tech",
+            status: "open",
+            requiredSkills: [
+              { name: "React Native", level: "INTERMEDIATE" },
+              { name: "Node.js", level: "ADVANCED" },
+              { name: "MongoDB", level: "INTERMEDIATE" }
+            ],
+            createdAt: "2024-01-15T10:00:00Z",
+            owner: "Ana Silva"
+          },
+          {
+            id: "2", 
+            title: "Plataforma de Educação Online",
+            description: "Criação de uma plataforma completa para cursos online com sistema de gamificação e certificação.",
+            category: "tech",
+            status: "open",
+            requiredSkills: [
+              { name: "Vue.js", level: "ADVANCED" },
+              { name: "Python", level: "INTERMEDIATE" },
+              { name: "PostgreSQL", level: "INTERMEDIATE" },
+              { name: "Docker", level: "BEGINNER" }
+            ],
+            createdAt: "2024-01-20T14:30:00Z",
+            owner: "Carlos Mendes"
+          },
+          {
+            id: "3",
+            title: "Identidade Visual para Startup",
+            description: "Desenvolvimento completo da identidade visual, logotipo e manual de marca para uma startup de fintech.",
+            category: "design",
+            status: "in-progress",
+            requiredSkills: [
+              { name: "Adobe Illustrator", level: "ADVANCED" },
+              { name: "Figma", level: "INTERMEDIATE" },
+              { name: "Branding", level: "ADVANCED" }
+            ],
+            createdAt: "2024-01-10T09:15:00Z",
+            owner: "Marina Costa"
+          },
+          {
+            id: "4",
+            title: "Plano de Negócios para E-commerce",
+            description: "Elaboração de um plano de negócios completo para uma loja virtual de produtos artesanais.",
+            category: "business",
+            status: "open",
+            requiredSkills: [
+              { name: "Análise de Mercado", level: "ADVANCED" },
+              { name: "Estratégia Digital", level: "INTERMEDIATE" },
+              { name: "Gestão Financeira", level: "INTERMEDIATE" }
+            ],
+            createdAt: "2024-01-25T16:45:00Z",
+            owner: "Roberto Lima"
+          }
+        ];
+      }
+      renderProjects(projects);
+    }
+
+    function doSearch() {
+      const q = (searchInput.value || "").toLowerCase();
+      if (!q) {
+        render(members);
+        renderProjects(projects);
+        return;
+      }
+      const filtered = members.filter(m =>
+        m.name.toLowerCase().includes(q) ||
+        m.role.toLowerCase().includes(q) ||
+        (m.bio || "").toLowerCase().includes(q) ||
+        m.skills?.some(s => s.toLowerCase().includes(q)) ||
+        m.specialties?.some(s => s.label.toLowerCase().includes(q) || s.code.toLowerCase().includes(q))
+      );
+      render(filtered);
+      
+      // Também filtrar projetos pela busca
+      const filteredProjects = projects.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.requiredSkills?.some(s => s.name.toLowerCase().includes(q))
+      );
+      renderProjects(filteredProjects);
+    }
+
+    // Event listeners
+    searchBtn.addEventListener("click", doSearch);
+    searchInput.addEventListener("keyup", (e) => { if (e.key === "Enter") doSearch(); });
+
+    load();
+  </script>
+</body>
+</html>
