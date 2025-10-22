@@ -52,6 +52,19 @@
           </div>
         </section>
 
+        <!-- Membros Selecionados -->
+        <section class="content-card selected-members-card">
+          <h3><i class="fas fa-user-check"></i> Membros Selecionados</h3>
+          <p class="section-description">Colaboradores escolhidos para participar do projeto</p>
+          <div id="selectedMembersList" class="selected-members-list">
+            <div class="empty-state">
+              <i class="fas fa-user-plus"></i>
+              <p>Nenhum colaborador selecionado ainda</p>
+              <small>Use o assistente IA para recomendar colaboradores ideais</small>
+            </div>
+          </div>
+        </section>
+
         <!-- Habilidades Necessárias -->
         <section class="content-card">
           <h3><i class="fas fa-code"></i> Habilidades Necessárias</h3>
@@ -71,31 +84,28 @@
       <div class="sidebar-column">
         <!-- Colaboradores -->
         <section class="content-card">
-          <h3><i class="fas fa-users"></i> Equipe</h3>
-          <p class="section-description">Membros da equipe do projeto</p>
+          <h3><i class="fas fa-users"></i>Colaboradores</h3>
+          <p class="section-description">Escolher Colaboradores para o Projeto</p>
+          
+          <!-- Assistente IA para Recomendação -->
+          <div class="ai-recommendation-section">
+            <div class="ai-content">
+              <div class="ai-text">
+                <h4>Assistente IA</h4>
+                <p>Recomende colaboradores ideais baseado nas habilidades do projeto</p>
+              </div>
+            </div>
+            <button class="ai-button" id="aiAssistantBtn">
+              <i class="fas fa-magic"></i> Recomendar Colaboradores
+            </button>
+          </div>
+
+          <!-- Lista de Colaboradores Recomendados -->
           <div id="collaboratorsList" class="collaborators-list">
             <!-- Lista será preenchida via JavaScript -->
           </div>
         </section>
-
-        <!-- Assistente IA -->
-        <section class="ai-section">
-          <h3><i class="fas fa-robot"></i> Assistente IA</h3>
-          <p>Obtenha recomendações inteligentes para otimizar seu projeto</p>
-          <button class="ai-button" id="aiAssistantBtn">
-            <i class="fas fa-magic"></i> Obter Recomendações
-          </button>
-        </section>
-
-        <!-- Ações Rápidas -->
-        <section class="content-card">
-          <h3><i class="fas fa-bolt"></i> Ações Rápidas</h3>
-          <div class="quick-actions">
-            <button class="btn btn-primary btn-block">
-              <i class="fas fa-edit"></i> Editar Projeto
-            </button>
-          </div>
-        </section>
+        
       </div>
     </div>
   </main>
@@ -124,7 +134,12 @@
     const projectDescription = document.getElementById('projectDescription');
     const skillsList = document.getElementById('skillsList');
     const collaboratorsList = document.getElementById('collaboratorsList');
+    const selectedMembersList = document.getElementById('selectedMembersList');
     const aiAssistantBtn = document.getElementById('aiAssistantBtn');
+
+    // Estado dos colaboradores
+    let selectedMembers = [];
+    let availableCollaborators = [];
 
     // Funções utilitárias
     function formatDate(dateString) {
@@ -148,9 +163,12 @@
 
     function renderCollaborators(collaborators) {
       collaboratorsList.innerHTML = '';
+      availableCollaborators = collaborators;
+      
       collaborators.forEach(collaborator => {
         const collaboratorElement = document.createElement('div');
         collaboratorElement.className = 'collaborator-item';
+        const isSelected = selectedMembers.some(m => m.id === collaborator.id);
         
         collaboratorElement.innerHTML = `
           <div class="collaborator-avatar">${getInitials(collaborator.name)}</div>
@@ -158,11 +176,68 @@
             <div class="collaborator-name">${collaborator.name}</div>
             <div class="collaborator-role">${collaborator.role}</div>
           </div>
-          <div class="collaborator-status ${collaborator.status}"></div>
+          <div class="collaborator-actions">
+            <div class="collaborator-status ${collaborator.status}"></div>
+            <button class="btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}" 
+                    onclick="toggleCollaborator('${collaborator.id}')">
+              <i class="fas ${isSelected ? 'fa-check' : 'fa-plus'}"></i>
+              ${isSelected ? 'Selecionado' : 'Selecionar'}
+            </button>
+          </div>
         `;
         
         collaboratorsList.appendChild(collaboratorElement);
       });
+    }
+
+    function toggleCollaborator(collaboratorId) {
+      const collaborator = availableCollaborators.find(c => c.id === collaboratorId);
+      const isSelected = selectedMembers.some(m => m.id === collaboratorId);
+      
+      if (isSelected) {
+        selectedMembers = selectedMembers.filter(m => m.id !== collaboratorId);
+      } else {
+        selectedMembers.push(collaborator);
+      }
+      
+      renderCollaborators(availableCollaborators);
+      renderSelectedMembers();
+    }
+
+    function renderSelectedMembers() {
+      if (selectedMembers.length === 0) {
+        selectedMembersList.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-user-plus"></i>
+            <p>Nenhum colaborador selecionado ainda</p>
+            <small>Use o assistente IA para recomendar colaboradores ideais</small>
+          </div>
+        `;
+        return;
+      }
+      
+      selectedMembersList.innerHTML = selectedMembers.map(member => `
+        <div class="collaborator-item selected">
+          <div class="collaborator-avatar">${getInitials(member.name)}</div>
+          <div class="collaborator-info">
+            <div class="collaborator-name">${member.name}</div>
+            <div class="collaborator-role">${member.role}</div>
+          </div>
+          <div class="collaborator-actions">
+            <div class="collaborator-status ${member.status}"></div>
+            <button class="btn btn-sm btn-danger" onclick="removeSelectedMember('${member.id}')">
+              <i class="fas fa-times"></i>
+              Remover
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function removeSelectedMember(collaboratorId) {
+      selectedMembers = selectedMembers.filter(m => m.id !== collaboratorId);
+      renderCollaborators(availableCollaborators);
+      renderSelectedMembers();
     }
 
     function renderProject(project) {
@@ -184,6 +259,7 @@
       // Renderiza colaboradores
       if (project.collaborators) {
         renderCollaborators(project.collaborators);
+        renderSelectedMembers();
       }
     }
 
