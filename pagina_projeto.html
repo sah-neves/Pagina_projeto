@@ -12,14 +12,14 @@
     <div class="brand">TeamBuilder</div>
     <nav class="menu">
       <a href="home.html" class="link">Home</a>
-      <a href="criar_projeto.html" class="btn btn-primary">+ Novo Projeto</a>
+      <a href="criar_projeto.html" class="link">+ Novo Projeto</a>
     </nav>
   </header>
 
   <main class="container">
     <!-- Cabeçalho do Projeto -->
     <div class="project-header">
-      <div>
+      <div class="project-info">
         <h1 class="project-title" id="projectTitle">Plataforma de E-commerce</h1>
         <p class="project-subtitle">Desenvolvimento de uma plataforma completa de vendas online</p>
         <div class="project-meta">
@@ -31,29 +31,30 @@
             <i class="fas fa-users"></i>
             <span>5 membros na equipe</span>
           </div>
-          <div class="meta-item">
-            <i class="fas fa-chart-line"></i>
-            <span>75% concluído</span>
-          </div>
         </div>
       </div>
-      <span class="project-status status-active">Em Andamento</span>
+      <div class="project-status-container">
+        <span class="project-status status-active">Em Andamento</span>
+      </div>
     </div>
 
-    <!-- Descrição do Projeto -->
-    <div class="project-description" id="projectDescription">
-      Desenvolvimento de uma plataforma completa de vendas online com sistema de pagamentos integrado, 
-      gestão de estoque, painel administrativo e aplicativo mobile. O projeto visa criar uma solução 
-      escalável que atenda tanto pequenos empreendedores quanto grandes empresas.
-    </div>
+    <!-- Grid de Conteúdo Principal -->
+    <div class="main-content-grid">
+      <!-- Coluna Principal - Informações do Projeto -->
+      <div class="main-column">
+        <!-- Descrição do Projeto -->
+        <section class="content-card project-description-card">
+          <h3><i class="fas fa-info-circle"></i> Sobre o Projeto</h3>
+          <div class="project-description" id="projectDescription">
+            Desenvolvimento de uma plataforma completa de vendas online com sistema de pagamentos integrado, 
+            gestão de estoque, painel administrativo e aplicativo mobile. O projeto visa criar uma solução 
+            escalável que atenda tanto pequenos empreendedores quanto grandes empresas.
+          </div>
+        </section>
 
-    <!-- Grid de Conteúdo -->
-    <div class="content-grid">
-      <!-- Coluna Principal -->
-      <div>
         <!-- Habilidades Necessárias -->
-        <div class="content-card">
-          <h3>Habilidades Necessárias</h3>
+        <section class="content-card">
+          <h3><i class="fas fa-code"></i> Habilidades Necessárias</h3>
           <p class="section-description">Tecnologias e competências requeridas para o projeto</p>
           <div class="skills-list" id="skillsList">
             <span class="skill-tag">React</span>
@@ -63,45 +64,38 @@
             <span class="skill-tag">TypeScript</span>
             <span class="skill-tag">Docker</span>
           </div>
-        </div>
-
-        <!-- Progresso do Projeto -->
-        <div class="content-card">
-          <h3>Progresso do Projeto</h3>
-          <p class="section-description">Acompanhe o desenvolvimento e marcos alcançados</p>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: 75%"></div>
-          </div>
-          <p style="margin: 8px 0; color: var(--muted); font-size: 14px;">75% concluído - Fase de desenvolvimento avançada</p>
-        </div>
+        </section>
       </div>
 
-      <!-- Coluna Lateral -->
-      <div>
+      <!-- Coluna Lateral - Equipe e Ferramentas -->
+      <div class="sidebar-column">
+        <!-- Colaboradores -->
+        <section class="content-card">
+          <h3><i class="fas fa-users"></i> Equipe</h3>
+          <p class="section-description">Membros da equipe do projeto</p>
+          <div id="collaboratorsList" class="collaborators-list">
+            <!-- Lista será preenchida via JavaScript -->
+          </div>
+        </section>
+
         <!-- Assistente IA -->
-        <div class="ai-section">
+        <section class="ai-section">
           <h3><i class="fas fa-robot"></i> Assistente IA</h3>
           <p>Obtenha recomendações inteligentes para otimizar seu projeto</p>
           <button class="ai-button" id="aiAssistantBtn">
             <i class="fas fa-magic"></i> Obter Recomendações
           </button>
-        </div>
+        </section>
 
         <!-- Ações Rápidas -->
-        <div class="content-card">
-          <h3>Ações Rápidas</h3>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <button class="btn btn-primary" style="width: 100%;">
+        <section class="content-card">
+          <h3><i class="fas fa-bolt"></i> Ações Rápidas</h3>
+          <div class="quick-actions">
+            <button class="btn btn-primary btn-block">
               <i class="fas fa-edit"></i> Editar Projeto
             </button>
-            <button class="btn" style="width: 100%;">
-              <i class="fas fa-users"></i> Gerenciar Equipe
-            </button>
-            <button class="btn" style="width: 100%;">
-              <i class="fas fa-share"></i> Compartilhar
-            </button>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </main>
@@ -116,13 +110,20 @@
       createdAt: '2024-01-15',
       skills: ['React', 'Node.js', 'PostgreSQL', 'Stripe API', 'TypeScript', 'Docker'],
       teamSize: 5,
-      progress: 75
+      collaborators: [
+        { id: '1', name: 'Sarah Chen', role: 'Full Stack Developer', status: 'online' },
+        { id: '2', name: 'Marcus Johnson', role: 'DevOps Engineer', status: 'busy' },
+        { id: '3', name: 'Ana Silva', role: 'UI/UX Designer', status: 'online' },
+        { id: '4', name: 'Carlos Mendes', role: 'Backend Developer', status: 'offline' },
+        { id: '5', name: 'Marina Costa', role: 'Product Manager', status: 'online' }
+      ]
     };
 
     // Referências DOM
     const projectTitle = document.getElementById('projectTitle');
     const projectDescription = document.getElementById('projectDescription');
     const skillsList = document.getElementById('skillsList');
+    const collaboratorsList = document.getElementById('collaboratorsList');
     const aiAssistantBtn = document.getElementById('aiAssistantBtn');
 
     // Funções utilitárias
@@ -141,6 +142,29 @@
       return statusMap[status] || { class: 'status-pending', text: 'Pendente' };
     }
 
+    function getInitials(name) {
+      return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    }
+
+    function renderCollaborators(collaborators) {
+      collaboratorsList.innerHTML = '';
+      collaborators.forEach(collaborator => {
+        const collaboratorElement = document.createElement('div');
+        collaboratorElement.className = 'collaborator-item';
+        
+        collaboratorElement.innerHTML = `
+          <div class="collaborator-avatar">${getInitials(collaborator.name)}</div>
+          <div class="collaborator-info">
+            <div class="collaborator-name">${collaborator.name}</div>
+            <div class="collaborator-role">${collaborator.role}</div>
+          </div>
+          <div class="collaborator-status ${collaborator.status}"></div>
+        `;
+        
+        collaboratorsList.appendChild(collaboratorElement);
+      });
+    }
+
     function renderProject(project) {
       // Atualiza título e descrição
       projectTitle.textContent = project.title;
@@ -157,9 +181,10 @@
       statusElement.className = `project-status ${statusInfo.class}`;
       statusElement.textContent = statusInfo.text;
 
-      // Atualiza progresso
-      const progressFill = document.querySelector('.progress-fill');
-      progressFill.style.width = `${project.progress}%`;
+      // Renderiza colaboradores
+      if (project.collaborators) {
+        renderCollaborators(project.collaborators);
+      }
     }
 
     // Função do Assistente IA (placeholder para futura integração)
